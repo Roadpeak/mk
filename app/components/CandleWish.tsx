@@ -75,7 +75,6 @@ export default function CandleWish({ onComplete }: CandleWishProps) {
   const smokeRef      = useRef<HTMLDivElement>(null);
   const bouquetRef    = useRef<HTMLDivElement>(null);
   const wishRef       = useRef<HTMLDivElement>(null);
-  const btnRef        = useRef<HTMLButtonElement>(null);
   const flameAnimRef  = useRef<gsap.core.Tween | null>(null);
   const [blown, setBlown]       = useState(false);
   const [showWish, setShowWish] = useState(false);
@@ -127,7 +126,7 @@ export default function CandleWish({ onComplete }: CandleWishProps) {
       if (fxContainerRef.current) launchMultipleFireworks(fxContainerRef.current);
     }, 2200);
 
-    // Wish text
+    // Wish text appears
     setTimeout(() => {
       setShowWish(true);
       if (wishRef.current) {
@@ -136,15 +135,12 @@ export default function CandleWish({ onComplete }: CandleWishProps) {
           { opacity: 1, y: 0, scale: 1, duration: 1, ease: "power2.out" }
         );
       }
-      setTimeout(() => {
-        if (btnRef.current)
-          gsap.fromTo(btnRef.current, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.8 });
-      }, 1800);
     }, 2400);
-  };
 
-  const handleContinue = () => {
-    gsap.to(containerRef.current, { opacity: 0, duration: 0.8, onComplete });
+    // Auto-advance to mosaic 3 seconds after second firework wave
+    setTimeout(() => {
+      gsap.to(containerRef.current, { opacity: 0, duration: 0.8, onComplete });
+    }, 2200 + 3000);
   };
 
   return (
@@ -401,21 +397,6 @@ export default function CandleWish({ onComplete }: CandleWishProps) {
               <br />
               Everything you&apos;re dreaming of — it&apos;s coming.
             </p>
-            <button
-              ref={btnRef}
-              onClick={handleContinue}
-              className="mt-8 w-full rounded-full tracking-[0.25em] uppercase font-bold active:scale-95 transition-transform"
-              style={{
-                background: "linear-gradient(135deg, #e8637a, #d4af7a)",
-                color: "white", border: "none", opacity: 0,
-                boxShadow: "0 0 30px rgba(232,99,122,0.5)",
-                minHeight: "54px",
-                fontSize: "clamp(0.82rem, 3.5vw, 0.95rem)",
-                fontFamily: "Georgia, serif",
-              }}
-            >
-              ✦ One last thing ✦
-            </button>
           </div>
         )}
       </div>
