@@ -11,6 +11,7 @@ interface PhotoTimelineProps {
 
 const BOOK_PHOTOS = photos.slice(0, 44);
 
+
 // Directions each photo slides in from
 const DIRECTIONS = [
   { x: "-100%", y: "0%" },   // from left

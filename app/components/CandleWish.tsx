@@ -8,7 +8,7 @@ interface CandleWishProps {
 }
 
 // Use the first WhatsApp photo of her on the cake
-const PHOTO = "/photos/WhatsApp Image 2026-05-31 at 02.47.54.jpeg";
+const PHOTO = "/photos/WhatsApp%20Image%202026-05-31%20at%2002.47.54.jpeg";
 
 const FIREWORK_COLORS = [
   "#e8637a","#d4af7a","#a855f7","#60a5fa","#34d399",

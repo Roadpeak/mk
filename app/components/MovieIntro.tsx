@@ -5,7 +5,6 @@ import { gsap } from "gsap";
 
 interface MovieIntroProps {
   onComplete: () => void;
-  onStart?: () => void;
 }
 
 const lines = [
@@ -14,15 +13,11 @@ const lines = [
   { text: "Something beautiful ahead.", delay: 4.0 },
 ];
 
-export default function MovieIntro({ onComplete, onStart }: MovieIntroProps) {
+export default function MovieIntro({ onComplete }: MovieIntroProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Lock scroll
     document.body.style.overflow = "hidden";
-
-    // Trigger intro music immediately
-    onStart?.();
 
     const tl = gsap.timeline();
 
