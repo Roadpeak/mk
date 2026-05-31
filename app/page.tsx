@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import dynamic from "next/dynamic";
 import AudioManager, { AudioManagerHandle } from "./components/AudioManager";
+import { photos, videos } from "./data/assets";
 
 const MovieIntro = dynamic(() => import("./components/MovieIntro"), { ssr: false });
 const SpaceIntro = dynamic(() => import("./components/SpaceIntro"), { ssr: false });
@@ -50,6 +51,16 @@ export default function Home() {
   const handleReplay = useCallback(() => {
     audioRef.current?.stopAll();
     setStage("splash");
+  }, []);
+
+  // Preload photos + videos as soon as splash is shown
+  useEffect(() => {
+    photos.forEach((src) => { const i = new Image(); i.src = src; });
+    videos.forEach((src) => {
+      const v = document.createElement("video");
+      v.preload = "auto";
+      v.src = src;
+    });
   }, []);
 
   // Splash tap — this is the user gesture that unlocks audio

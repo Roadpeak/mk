@@ -51,19 +51,13 @@ export default function PhotoTimeline({ onComplete, onFadeAudio }: PhotoTimeline
     );
 
     const totalPhotos = BOOK_PHOTOS.length;
-    // 5 seconds total across all photos
     const INTERVAL = 5000 / totalPhotos;
-
-    let idx = 0;
-    let useA = true;
 
     const la = layerARef.current;
     const lb = layerBRef.current;
     if (!la || !lb) return;
 
-    // Show first photo immediately
-    la.style.backgroundImage = `url("${BOOK_PHOTOS[0]}")`;
-    gsap.set(la, { x: 0, y: 0, opacity: 1, zIndex: 2 });
+    gsap.set(la, { x: 0, y: 0, opacity: 0, zIndex: 2 });
     gsap.set(lb, { opacity: 0, zIndex: 1 });
 
     const exitSequence = () => {
@@ -85,43 +79,57 @@ export default function PhotoTimeline({ onComplete, onFadeAudio }: PhotoTimeline
       }, 500);
     };
 
-    const step = () => {
-      idx++;
+    const runLoop = () => {
+      let idx = 0;
+      let useA = true;
 
-      if (idx >= totalPhotos) {
-        exitSequence();
-        return;
-      }
+      // Show first photo
+      la.style.backgroundImage = `url("${BOOK_PHOTOS[0]}")`;
+      gsap.set(la, { x: 0, y: 0, opacity: 1, zIndex: 2 });
+      gsap.set(lb, { opacity: 0, zIndex: 1 });
 
-      const photo = BOOK_PHOTOS[idx];
-      const dir   = DIRECTIONS[idx % DIRECTIONS.length];
-      const incoming = useA ? la : lb;
-      const outgoing = useA ? lb : la;
+      const step = () => {
+        idx++;
+        if (idx >= totalPhotos) { exitSequence(); return; }
 
-      incoming.style.backgroundImage = `url("${photo}")`;
-      gsap.set(incoming, { x: dir.x, y: dir.y, opacity: 1, zIndex: 3 });
-      gsap.set(outgoing, { zIndex: 2 });
+        const photo    = BOOK_PHOTOS[idx];
+        const dir      = DIRECTIONS[idx % DIRECTIONS.length];
+        const incoming = useA ? la : lb;
+        const outgoing = useA ? lb : la;
 
-      gsap.to(incoming, {
-        x: 0, y: 0,
-        duration: INTERVAL / 1000,
-        ease: "power1.inOut",
-      });
+        incoming.style.backgroundImage = `url("${photo}")`;
+        gsap.set(incoming, { x: dir.x, y: dir.y, opacity: 1, zIndex: 3 });
+        gsap.set(outgoing, { zIndex: 2 });
+        gsap.to(incoming, { x: 0, y: 0, duration: INTERVAL / 1000, ease: "power1.inOut" });
+        gsap.to(outgoing, { opacity: 0, duration: (INTERVAL / 1000) * 0.5, ease: "power1.in" });
 
-      gsap.to(outgoing, {
-        opacity: 0,
-        duration: (INTERVAL / 1000) * 0.5,
-        ease: "power1.in",
-      });
+        useA = !useA;
+        setTimeout(step, INTERVAL);
+      };
 
-      useA = !useA;
-
-      // Schedule next step
       setTimeout(step, INTERVAL);
     };
 
-    // Start the loop
-    setTimeout(step, INTERVAL);
+    // Preload all images, then run
+    let loaded = 0;
+    let started = false;
+    const tryStart = () => {
+      if (started) return;
+      started = true;
+      runLoop();
+    };
+
+    BOOK_PHOTOS.forEach((src) => {
+      const img = new window.Image();
+      img.onload = img.onerror = () => {
+        loaded++;
+        if (loaded === BOOK_PHOTOS.length) tryStart();
+      };
+      img.src = src;
+    });
+
+    // Fallback: start after 5s regardless
+    setTimeout(tryStart, 5000);
   };
 
   // Book entrance + cover open

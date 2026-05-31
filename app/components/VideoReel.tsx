@@ -13,10 +13,16 @@ export default function VideoReel({ onComplete }: VideoReelProps) {
   const videoRefs    = useRef<(HTMLVideoElement | null)[]>([]);
   const doneRef      = useRef(false);
 
+  const configs = [
+    { enterDelay: 0,   fromX: "-130%", fromY:    "0%", fromScale: 0.5, rotation:  -6 },
+    { enterDelay: 1.8, fromX:  "130%", fromY:    "0%", fromScale: 0.5, rotation:   5 },
+    { enterDelay: 3.4, fromX:    "0%", fromY: "-130%", fromScale: 0.4, rotation:  -4 },
+    { enterDelay: 5.0, fromX:    "0%", fromY:  "130%", fromScale: 0.4, rotation:   7 },
+  ];
+
   useEffect(() => {
     if (doneRef.current) return;
 
-    // Fade screen in
     gsap.fromTo(containerRef.current,
       { opacity: 0 },
       { opacity: 1, duration: 0.8, ease: "power2.out" }
@@ -24,74 +30,62 @@ export default function VideoReel({ onComplete }: VideoReelProps) {
 
     const els = videoRefs.current.filter(Boolean) as HTMLVideoElement[];
 
-    // Each video starts at a different staggered time so they overlap
-    // Video 0 — enters immediately from deep left-space
-    // Video 1 — enters 1.8s later from deep right-space
-    // Video 2 — enters 3.4s later from deep top-space
-    // Video 3 — enters 5.0s later from deep bottom-space
-    // Total visible window: ~12s, then they all drift out together
+    // Set src + preload on all videos immediately so they start fetching
+    els.forEach((vid, i) => {
+      vid.src = videos[i];
+      vid.preload = "auto";
+      vid.load();
+    });
 
-    const configs = [
-      { enterDelay: 0,   fromX: "-130%", fromY:    "0%", fromScale: 0.5, rotation:  -6 },
-      { enterDelay: 1.8, fromX:  "130%", fromY:    "0%", fromScale: 0.5, rotation:   5 },
-      { enterDelay: 3.4, fromX:    "0%", fromY: "-130%", fromScale: 0.4, rotation:  -4 },
-      { enterDelay: 5.0, fromX:    "0%", fromY:  "130%", fromScale: 0.4, rotation:   7 },
-    ];
-
+    // For each video, wait until it has enough data (canplay), then schedule its entrance
     els.forEach((vid, i) => {
       const cfg = configs[i] || configs[0];
 
-      // Start video loading
-      vid.src = videos[i];
-      vid.load();
-
-      // Set initial state — off screen + small (deep space feel)
+      // Park off-screen
       gsap.set(vid, {
-        x: cfg.fromX,
-        y: cfg.fromY,
-        scale: cfg.fromScale,
-        opacity: 0,
-        rotation: cfg.rotation,
-        zIndex: i + 1,
+        x: cfg.fromX, y: cfg.fromY,
+        scale: cfg.fromScale, opacity: 0,
+        rotation: cfg.rotation, zIndex: i + 1,
       });
 
-      // Slide in from space
-      gsap.to(vid, {
-        x: 0, y: 0,
-        scale: 1,
-        opacity: 1,
-        rotation: 0,
-        duration: 1.4,
-        delay: cfg.enterDelay,
-        ease: "power3.out",
-        onStart: () => { vid.play().catch(() => {}); },
-      });
+      const scheduleEntry = () => {
+        gsap.to(vid, {
+          x: 0, y: 0, scale: 1, opacity: 1, rotation: 0,
+          duration: 1.4,
+          delay: cfg.enterDelay,
+          ease: "power3.out",
+          onStart: () => { vid.play().catch(() => {}); },
+        });
 
-      // Each video drifts and fades out after being on screen a bit
-      const stayDuration = 4.5;
-      gsap.to(vid, {
-        opacity: 0,
-        scale: 0.85,
-        x: cfg.fromX === "0%" ? cfg.fromX : (parseFloat(cfg.fromX) * -0.4) + "%",
-        duration: 1.2,
-        delay: cfg.enterDelay + stayDuration,
-        ease: "power2.in",
-      });
+        const stayDuration = 4.5;
+        gsap.to(vid, {
+          opacity: 0, scale: 0.85,
+          x: cfg.fromX === "0%" ? cfg.fromX : (parseFloat(cfg.fromX) * -0.4) + "%",
+          duration: 1.2,
+          delay: cfg.enterDelay + stayDuration,
+          ease: "power2.in",
+        });
+      };
+
+      if (vid.readyState >= 3) {
+        // Already buffered enough
+        scheduleEntry();
+      } else {
+        vid.addEventListener("canplay", scheduleEntry, { once: true });
+        // Fallback: schedule anyway after 3s so it doesn't just hang
+        setTimeout(scheduleEntry, 3000);
+      }
     });
 
-    // Total runtime: last video enters at 5.0s, stays 4.5s, fades 1.2s = ~10.7s
-    // Fire onComplete at 11s
+    // onComplete at 11s
     const exitTimer = setTimeout(() => {
       if (doneRef.current) return;
       doneRef.current = true;
-      gsap.to(containerRef.current, {
-        opacity: 0,
-        duration: 0.8,
-        onComplete,
-      });
+      gsap.to(containerRef.current, { opacity: 0, duration: 0.8, onComplete });
     }, 11000);
 
     return () => clearTimeout(exitTimer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onComplete]);
 
   return (
@@ -105,7 +99,7 @@ export default function VideoReel({ onComplete }: VideoReelProps) {
         perspective: "800px",
       }}
     >
-      {/* Deep space star-dust background */}
+      {/* Deep space star-dust */}
       <div className="absolute inset-0 pointer-events-none" style={{
         background: `
           radial-gradient(1px 1px at 20% 30%, rgba(255,255,255,0.4) 0%, transparent 100%),
@@ -118,7 +112,7 @@ export default function VideoReel({ onComplete }: VideoReelProps) {
         `,
       }} />
 
-      {/* Rose/purple nebula glow */}
+      {/* Nebula glow */}
       <div className="absolute inset-0 pointer-events-none" style={{
         background: `
           radial-gradient(ellipse at 25% 50%, rgba(107,63,160,0.25) 0%, transparent 50%),
@@ -126,7 +120,7 @@ export default function VideoReel({ onComplete }: VideoReelProps) {
         `,
       }} />
 
-      {/* All 4 videos — stacked, each positioned absolute and centered */}
+      {/* Videos — src set in JS */}
       {videos.map((_, i) => (
         <video
           key={i}
@@ -135,29 +129,25 @@ export default function VideoReel({ onComplete }: VideoReelProps) {
           muted
           playsInline
           style={{
-            top: "50%",
-            left: "50%",
+            top: "50%", left: "50%",
             transform: "translate(-50%, -50%)",
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            opacity: 0,
+            width: "100%", height: "100%",
+            objectFit: "cover", opacity: 0,
             willChange: "transform, opacity",
           }}
         />
       ))}
 
-      {/* Vignette on top of all videos */}
+      {/* Vignette */}
       <div className="absolute inset-0 pointer-events-none z-20" style={{
         background: "radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.55) 100%)",
       }} />
 
-      {/* Floating petals */}
+      {/* Petals */}
       <div className="absolute inset-0 z-30 pointer-events-none overflow-hidden">
         {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} className="absolute text-2xl" style={{
-            left: `${12 + i * 16}%`,
-            top: "-5%",
+            left: `${12 + i * 16}%`, top: "-5%",
             animation: `petalFall ${6 + i}s linear ${i * 1.1}s infinite`,
             opacity: 0.45,
           }}>
